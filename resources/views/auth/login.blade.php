@@ -38,7 +38,7 @@
         <div class="auth-form">
             <div class="auth-header">
                 <a href="#">
-                    <img src="{{ asset('assets/images/logo-dark.svg') }}" alt="logo">
+                    <img src="{{ asset('assets/images/HORIZON-BLUE.png') }}" alt="logo" style="max-width:160px;height:auto;">
                 </a>
             </div>
 

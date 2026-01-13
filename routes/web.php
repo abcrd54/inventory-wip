@@ -6,6 +6,10 @@ use App\Http\Controllers\SparepartController;
 use App\Http\Controllers\SparepartMasukController;
 use App\Http\Controllers\SparepartKeluarController;
 use App\Http\Controllers\SparepartRiwayatController;
+use App\Http\Controllers\UnitController;
+use App\Http\Controllers\UnitBulkController;
+use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\InvoiceController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -45,5 +49,49 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::get('/sparepart/riwayat', [SparepartRiwayatController::class, 'index'])
         ->name('sparepart.riwayat.index');   
+
+     Route::get('/unit', [UnitController::class, 'index'])
+        ->name('unit.index');
+
+    Route::get('/unit/create', [UnitController::class, 'create'])
+        ->name('unit.create');
+
+    Route::post('/unit', [UnitController::class, 'store'])
+        ->name('unit.store');
+
+    Route::put('/unit/{unit}/status', [UnitController::class, 'updateStatus'])
+        ->name('unit.updateStatus');
+
+    
+    Route::get('/unit/bulk-status', [UnitBulkController::class, 'index'])
+        ->name('unit.bulk-status');
+
+    Route::post('/unit/bulk-status', [UnitBulkController::class, 'update'])
+        ->name('unit.bulk-status.update');
+    
+    Route::get('/inquiry', [InquiryController::class, 'index'])
+        ->name('inquiry.index');
+
+    Route::get('/inquiry/create', [InquiryController::class, 'create'])
+        ->name('inquiry.create');
+
+    Route::post('/inquiry', [InquiryController::class, 'store'])
+        ->name('inquiry.store');
+
+    Route::delete('/inquiry/{id}', [InquiryController::class, 'destroy'])
+        ->name('inquiry.destroy');
+    
+    
+    Route::get('invoice', [InvoiceController::class, 'index'])
+        ->name('invoice.index');
+
+    Route::get('invoice/create', [InvoiceController::class, 'selectInquiry'])
+        ->name('invoice.select-inquiry');
+
+    Route::get('invoice/create/{inquiry}', [InvoiceController::class, 'create'])
+        ->name('invoice.create');
+
+    Route::post('invoice', [InvoiceController::class, 'store'])
+        ->name('invoice.store');
 });
 
