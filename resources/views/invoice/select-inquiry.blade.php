@@ -44,7 +44,7 @@
                         <b>Rp {{ number_format($i->total, 0, ',', '.') }}</b>
                     </td>
                     <td class="text-center">
-                        <a href="{{ route('invoice.create', $i->id) }}"
+                        <a href="{{ route('invoice.create', $i->no_inquiry) }}"
                            class="btn btn-primary btn-sm px-3">
                            Buat Invoice
                         </a>

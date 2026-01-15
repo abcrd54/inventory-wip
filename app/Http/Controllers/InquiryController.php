@@ -45,10 +45,13 @@ class InquiryController extends Controller
             'nama_customer' => $request->nama_customer,
             'no_hp' => $request->no_hp,
             'alamat' => $request->alamat,
-            'harga' => collect($request->items)->sum('harga'),
+            'harga' => collect($request->items)->sum(function ($item) {
+                return $item['harga'] * $item['quantity'];
+            }),
             'quantity' => collect($request->items)->sum('quantity'),
             'ongkir' => $request->ongkir ?? 0,
             'ppn' => 0,
+            'status' => 'menunggu_invoice'
         ]);
 
         foreach ($request->items as $item) {

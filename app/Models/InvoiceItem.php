@@ -7,8 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 class InvoiceItem extends Model
 {
     protected $fillable = [
-        'invoice_id','unit_id','tipe','warna',
-        'no_rangka','no_dinamo','status_pengiriman'
+        'invoice_id',
+        'unit_id',
+        'tipe',
+        'warna',
+        'no_rangka',
+        'no_dinamo',
+        'harga',
+        'status_pengiriman',
+    ];
+
+    protected $casts = [
+        'harga' => 'decimal:2',
     ];
 
     public function invoice()

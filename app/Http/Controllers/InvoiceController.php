@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Inquiry;
 use App\Models\Unit;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class InvoiceController extends Controller
 {
@@ -34,51 +38,135 @@ class InvoiceController extends Controller
         return view('invoice.select-inquiry', compact('inquiries'));
     }
 
-    public function create(Inquiry $inquiry)
+    public function create($no_inquiry)
     {
-        $units = Unit::where('tipe', $inquiry->items->first()->tipe)
-            ->where('status', 'ready')
-            ->get();
+        $inquiry = Inquiry::where('no_inquiry', $no_inquiry)
+                    ->with('items')
+                    ->firstOrFail();
 
-        return view('invoice.create', compact('inquiry', 'units'));
+        $tipeItems = $inquiry->items;
+
+        // Ambil semua unit ready untuk tipe-tipe inquiry
+        $units = Unit::whereIn('tipe', $tipeItems->pluck('id_barang')->unique())
+                    ->where('status', 'ready')
+                    ->orderBy('warna')
+                    ->get();
+
+        return view('invoice.create', compact('inquiry', 'tipeItems', 'units'));
     }
 
+    private function toDecimal($value)
+    {
+        // hapus Rp, spasi, titik ribuan
+        $clean = str_replace(['Rp', ' ', '.'], '', $value);
+
+        // ganti koma desimal ke titik
+        $clean = str_replace(',', '.', $clean);
+
+        return number_format((float) $clean, 2, '.', '');
+    }
     // SIMPAN
-    public function store(Request $request)
+   public function store(Request $request)
     {
         DB::transaction(function () use ($request) {
+
+            $totalItem = 0;
+
+            foreach ($request->items as $group) {
+                foreach ($group as $itemRow) {
+                    $totalItem += $this->toDecimal($itemRow['harga']);
+                }
+            }
+
+            $ongkir = $this->toDecimal($request->ongkir ?? 0);
+            $grandTotal = $totalItem + $ongkir;
 
             $invoice = Invoice::create([
                 'no_invoice' => 'LIGA-' . date('Ymd') . '-' . rand(100,999),
                 'inquiry_id' => $request->inquiry_id,
-                'status' => 'tunggu_pengiriman',
-                'total' => collect($request->items)->sum('harga')
+                'ongkir'     => $ongkir,
+                'total'      => $grandTotal,
+                'status'     => 'tunggu_pengiriman',
             ]);
 
-            $usedUnit = [];
+            foreach ($request->items as $group) {
+                foreach ($group as $itemRow) {
 
-            foreach ($request->items as $item) {
+                    $unit = Unit::findOrFail($itemRow['unit_id']);
 
-                if (in_array($item['unit_id'], $usedUnit)) {
-                    throw new \Exception('Unit dobel');
+                    InvoiceItem::create([
+                        'invoice_id'        => $invoice->id,
+                        'unit_id'           => $unit->id,
+                        'tipe'              => $unit->tipe,
+                        'warna'             => $unit->warna,
+                        'no_rangka'         => $unit->nomor_rangka,
+                        'no_dinamo'         => $unit->nomor_dinamo,
+                        'harga'             => $this->toDecimal($itemRow['harga']),
+                        'status_pengiriman' => 'pending',
+                    ]);
+
+                    $unit->update(['status' => 'terjual']);
                 }
-
-                InvoiceItem::create([
-                    'invoice_id' => $invoice->id,
-                    'unit_id' => $item['unit_id'],
-                    'harga' => $item['harga']
-                ]);
-
-                Unit::where('id', $item['unit_id'])
-                    ->update(['status' => 'terjual']);
-
-                $usedUnit[] = $item['unit_id'];
             }
+
+            // update status inquiry
+            Inquiry::where('id', $request->inquiry_id)
+                ->update(['status' => 'invoice_terbit']);
+        });
+
+        return redirect()->route('invoice.index')
+            ->with('success', 'Invoice berhasil dibuat');
+    }
+
+    public function destroy($id)
+    {
+        DB::transaction(function () use ($id) {
+
+            $invoice = Invoice::with(['items', 'inquiry'])->findOrFail($id);
+
+            if ($invoice->inquiry) {
+                $invoice->inquiry->update([
+                    'status' => 'menunggu_invoice', // sesuaikan enum kamu
+                ]);
+            }
+
+            // 2. Kembalikan status unit (jika sebelumnya terjual)
+            foreach ($invoice->items as $item) {
+                if ($item->unit_id) {
+                    Unit::where('id', $item->unit_id)->update([
+                        'status' => 'ready'
+                    ]);
+                }
+            }
+
+            // 3. Hapus invoice items
+            InvoiceItem::where('invoice_id', $invoice->id)->delete();
+
+            // 4. Hapus invoice
+            $invoice->delete();
         });
 
         return redirect()
             ->route('invoice.index')
-            ->with('success', 'Invoice berhasil dibuat');
+            ->with('success', 'Invoice berhasil dihapus & status inquiry dikembalikan');
     }
+
+    public function exportPdf($id)
+    {
+        $invoice = Invoice::with(['inquiry', 'items'])->findOrFail($id);
+
+        $pdf = Pdf::loadView('pdf.invoice', [
+            'invoice' => $invoice,
+            'company' => [
+                'name'    => 'NAMA PERUSAHAAN',
+                'address' => 'ALAMAT PERUSAHAAN',
+                'phone'   => 'NO TELP',
+                'logo'    => public_path('logo.png'), // GANTI LOGO NANTI
+            ]
+        ])->setPaper('A4', 'portrait');
+
+        return $pdf->stream('Invoice-' . $invoice->no_invoice . '.pdf');
+    }
+
 }
 

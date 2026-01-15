@@ -19,4 +19,9 @@ class InquiryItem extends Model
     {
         return $this->belongsTo(Inquiry::class);
     }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class, 'id_barang'); // kalau id_barang = id unit
+    }
 }

@@ -10,6 +10,7 @@ class Inquiry extends Model
 
     protected $fillable = [
         'no_inquiry',
+        'status',
         'harga',
         'ongkir',
         'ppn',
@@ -22,7 +23,8 @@ class Inquiry extends Model
 
     public function items()
     {
-        return $this->hasMany(InquiryItem::class);
+        return $this->hasMany(InquiryItem::class, 'inquiry_id');
     }
+
 
 }

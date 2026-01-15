@@ -88,10 +88,17 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('invoice/create', [InvoiceController::class, 'selectInquiry'])
         ->name('invoice.select-inquiry');
 
-    Route::get('invoice/create/{inquiry}', [InvoiceController::class, 'create'])
+    Route::get('invoice/create/{no_inquiry}', [InvoiceController::class, 'create'])
         ->name('invoice.create');
 
     Route::post('invoice', [InvoiceController::class, 'store'])
         ->name('invoice.store');
+
+    Route::delete('/invoice/{id}', [InvoiceController::class, 'destroy'])
+    ->name('invoice.destroy');
+    
+    Route::get('/invoice/{id}/pdf', [InvoiceController::class, 'exportPdf'])
+    ->name('invoice.pdf');
+
 });
 
