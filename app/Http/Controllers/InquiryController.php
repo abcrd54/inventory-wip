@@ -7,7 +7,7 @@ use App\Models\Inquiry;
 use Illuminate\Support\Str;
 use App\Models\Unit;
 use App\Models\InquiryItem;
-
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class InquiryController extends Controller
 {
@@ -71,5 +71,14 @@ class InquiryController extends Controller
     {
         Inquiry::findOrFail($id)->delete();
         return back()->with('success', 'Inquiry berhasil dihapus');
+    }
+
+    public function exportPdf($id)
+    {
+        $inquiry = Inquiry::with('items')->findOrFail($id);
+
+        return Pdf::loadView('pdf.inquiry', compact('inquiry'))
+            ->setPaper('A4', 'portrait')
+            ->stream('Inquiry-' . $inquiry->no_inquiry . '.pdf');
     }
 }

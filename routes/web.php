@@ -80,7 +80,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::delete('/inquiry/{id}', [InquiryController::class, 'destroy'])
         ->name('inquiry.destroy');
-    
+        
+    Route::get('/inquiry/{id}/pdf', [InquiryController::class, 'exportPdf'])
+    ->name('inquiry.pdf');
+
     
     Route::get('invoice', [InvoiceController::class, 'index'])
         ->name('invoice.index');
